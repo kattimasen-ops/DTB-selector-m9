@@ -1,0 +1,54 @@
+name: Run DTB Selector
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  process-dtb:
+    name: Execute DTB Selector
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Required Files
+        shell: powershell
+        run: |
+          if (-Not (Test-Path "rg32tw3ka.dtb")) {
+            Write-Error "rg32tw3ka.dtb was not found in the root of the repository."
+            exit 1
+          }
+          if (-Not (Test-Path "dtb_selector_win32.exe")) {
+            Write-Error "dtb_selector_win32.exe was not found in the root of the repository."
+            exit 1
+          }
+          Write-Host "Both rg32tw3ka.dtb and dtb_selector_win32.exe detected successfully."
+
+      - name: Execute DTB Selector
+        shell: powershell
+        run: |
+          Write-Host "Launching dtb_selector_win32.exe with rg32tw3ka.dtb..."
+          Start-Process -FilePath ".\dtb_selector_win32.exe" -ArgumentList "rg32tw3ka.dtb" -Wait -NoNewWindow
+
+      - name: Upload Output Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dtb-selector-output
+          path: |
+            *.dtb
+            *.ini
+            *.txt
+            *.log
+          retention-days: 7
