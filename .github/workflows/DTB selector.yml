@@ -35,11 +35,12 @@ jobs:
           }
           Write-Host "Both rg32tw3ka.dtb and dtb_selector_win32.exe detected successfully."
 
-      - name: Execute DTB Selector
+      - name: Execute DTB Selector Automatically
         shell: powershell
         run: |
-          Write-Host "Launching dtb_selector_win32.exe with rg32tw3ka.dtb..."
-          Start-Process -FilePath ".\dtb_selector_win32.exe" -ArgumentList "rg32tw3ka.dtb" -Wait -NoNewWindow
+          Write-Host "Launching dtb_selector_win32.exe with automated inputs..."
+          # Pipes '1' (English) followed by subsequent menu choices down stdin
+          @("1", "1", "1") | .\dtb_selector_win32.exe rg32tw3ka.dtb
 
       - name: Upload Output Artifacts
         if: always()
