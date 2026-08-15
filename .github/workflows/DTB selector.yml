@@ -22,25 +22,44 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Verify Required Files
-        shell: powershell
-        run: |
-          if (-Not (Test-Path "rg32tw3ka.dtb")) {
-            Write-Error "rg32tw3ka.dtb was not found in the root of the repository."
-            exit 1
-          }
-          if (-Not (Test-Path "dtb_selector_win32.exe")) {
-            Write-Error "dtb_selector_win32.exe was not found in the root of the repository."
-            exit 1
-          }
-          Write-Host "Both rg32tw3ka.dtb and dtb_selector_win32.exe detected successfully."
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Execute DTB Selector Automatically
-        shell: powershell
+      - name: Install Pseudo-Terminal Dependency
+        run: python -m pip install pywinpty
+
+      - name: Execute DTB Selector in Pseudo Console
+        shell: python
         run: |
-          Write-Host "Launching dtb_selector_win32.exe with automated inputs..."
-          # Pipes '1' (English) followed by subsequent menu choices down stdin
-          @("1", "1", "1") | .\dtb_selector_win32.exe rg32tw3ka.dtb
+          import time
+          import sys
+          from winpty import PtyProcess
+
+          print("Launching dtb_selector_win32.exe inside Pseudo Console...")
+          # Spawn the EXE inside a real ConPTY session
+          proc = PtyProcess.spawn('dtb_selector_win32.exe')
+
+          # Wait for the Language menu and send '1' (English) + Enter
+          time.sleep(3)
+          proc.write('1\r\n')
+
+          # Wait for subsequent selection prompt and send '1' + Enter
+          time.sleep(2)
+          proc.write('1\r\n')
+
+          # Give process time to complete file copying/operations
+          time.sleep(5)
+
+          # Print terminal output log
+          try:
+              output = proc.read()
+              print(output)
+          except Exception as e:
+              print(f"Process finished: {e}")
+
+          proc.close()
 
       - name: Upload Output Artifacts
         if: always()
